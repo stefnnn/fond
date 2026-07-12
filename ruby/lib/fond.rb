@@ -14,6 +14,8 @@ require "fond/registry"
 require "fond/page"
 require "fond/coerce"
 require "fond/serialize"
+require "fond/controller"
+require "fond/routes"
 require "fond/codegen/ts_emitter"
 require "fond/codegen/generator"
 require "fond/railtie" if defined?(Rails::Railtie)

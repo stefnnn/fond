@@ -195,20 +195,21 @@ class GeneratorTest < Minitest::Test
   def test_write_and_check_roundtrip
     props = Class.new(T::Struct) { const :a, Integer }
     page = build_page("GenWritePage", props: props)
-    generator = Fond::Codegen::Generator.new(pages: [page])
+    bindings = [Fond::Routes::Binding.new(page: page, path: "/gen-write", verb: "GET", required_params: [])]
+    generator = Fond::Codegen::Generator.new(pages: [page], bindings: bindings)
 
     Dir.mktmpdir do |dir|
       changed = generator.write(dir)
-      path = File.join(dir, "types.ts")
-      assert_equal [path], changed
-      assert File.exist?(path)
-      assert_equal generator.types_ts, File.read(path)
+      paths = %w[types.ts pages.ts hooks.ts paths.ts].map { |name| File.join(dir, name) }
+      assert_equal paths.sort, changed.sort
+      paths.each { |path| assert File.exist?(path) }
+      assert_equal generator.types_ts, File.read(paths[0])
       assert generator.check(dir)
 
       changed_again = generator.write(dir)
       assert_equal [], changed_again
 
-      File.write(path, "tampered")
+      File.write(File.join(dir, "pages.ts"), "tampered")
       refute generator.check(dir)
     end
   end
@@ -216,7 +217,8 @@ class GeneratorTest < Minitest::Test
   def test_check_false_when_file_missing
     props = Class.new(T::Struct) { const :a, Integer }
     page = build_page("GenMissingPage", props: props)
-    generator = Fond::Codegen::Generator.new(pages: [page])
+    bindings = [Fond::Routes::Binding.new(page: page, path: "/gen-missing", verb: "GET", required_params: [])]
+    generator = Fond::Codegen::Generator.new(pages: [page], bindings: bindings)
 
     Dir.mktmpdir do |dir|
       refute generator.check(dir)
