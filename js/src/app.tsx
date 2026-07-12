@@ -1,5 +1,5 @@
 import { createElement, useEffect, useState, type ComponentType } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import { setPage, type PagePayload } from "./store.js";
 import { usePage } from "./hooks.js";
 import { installClickInterceptor, installPopStateListener } from "./router.js";
@@ -31,9 +31,10 @@ interface Rendered {
   props: unknown;
 }
 
-function createFondAppComponent(resolve: CreateFondAppOptions["resolve"]) {
-  const cache = new Map<string, ComponentType<any>>();
-
+function createFondAppComponent(
+  resolve: CreateFondAppOptions["resolve"],
+  cache: Map<string, ComponentType<any>>,
+) {
   return function FondApp(): React.ReactElement | null {
     const page = usePage();
     const [rendered, setRendered] = useState<Rendered | null>(() => {
@@ -83,7 +84,21 @@ export function createFondApp(options: CreateFondAppOptions): void {
     throw new Error(`fond: missing root element #${rootId}`);
   }
 
-  const FondApp = createFondAppComponent(resolve);
+  const cache = new Map<string, ComponentType<any>>();
+  const FondApp = createFondAppComponent(resolve, cache);
+
+  if (rootEl.hasChildNodes()) {
+    Promise.resolve(resolve(initialPage.component))
+      .then((mod) => {
+        cache.set(initialPage.component, extractComponent(mod));
+        hydrateRoot(rootEl, createElement(FondApp));
+      })
+      .catch((err) => {
+        console.error("fond: hydration failed", err);
+      });
+    return;
+  }
+
   const root = createRoot(rootEl);
   root.render(createElement(FondApp));
 }

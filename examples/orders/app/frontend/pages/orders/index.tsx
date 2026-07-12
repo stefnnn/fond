@@ -1,4 +1,4 @@
-import { navigate } from "fond";
+import { navigate, usePage } from "fond";
 import { useOrdersIndex } from "../../generated/hooks";
 import { paths } from "../../generated/paths";
 import type { OrderStatus } from "../../generated/types";
@@ -7,7 +7,8 @@ import { StatusBadge, STATUSES } from "../../components/StatusBadge";
 
 export default function OrdersIndex() {
   const { orders, totalCount, page, perPage, statusCounts } = useOrdersIndex();
-  const params = new URLSearchParams(window.location.search);
+  const { url } = usePage();
+  const params = new URLSearchParams(url.split("?")[1] ?? "");
   const activeStatus = (params.get("status") || null) as OrderStatus | null;
   const query = params.get("query") ?? "";
   const totalPages = Math.max(1, Math.ceil(totalCount / perPage));

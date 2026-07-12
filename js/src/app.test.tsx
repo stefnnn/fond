@@ -1,4 +1,5 @@
-import { act } from "react";
+import { act, createElement } from "react";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFondApp, type ComponentModule } from "./app.js";
 
@@ -127,5 +128,59 @@ describe("createFondApp", () => {
 
     expect(resolve).toHaveBeenCalledTimes(1);
     expect(document.getElementById("fond-root")!.textContent).toBe("orders/index:2");
+  });
+});
+
+describe("createFondApp hydration", () => {
+  it("hydrates server-rendered markup with no mismatch and stays interactive", async () => {
+    const initialPage = { component: "orders/index", props: { totalCount: 3 }, url: "/orders", version: "v1" };
+    const html = renderToString(createElement(OrdersIndex, initialPage.props));
+
+    document.body.innerHTML = `
+      <div id="fond-root">${html}</div>
+      <script type="application/json" id="fond-page-data">${JSON.stringify(initialPage)}</script>
+    `;
+
+    const resolve = vi.fn(
+      (name: string): ComponentModule =>
+        name === "orders/index" ? { default: OrdersIndex } : { default: OrdersShow },
+    );
+
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await act(async () => {
+      createFondApp({ resolve });
+      await new Promise((resolve_) => setTimeout(resolve_, 0));
+    });
+
+    expect(document.getElementById("fond-root")!.textContent).toBe("orders/index:3");
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
+
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({ component: "orders/show", props: { id: 9 }, url: "/orders/9", version: "v1" }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const { navigate } = await import("./router.js");
+    await act(async () => {
+      await navigate("/orders/9");
+    });
+
+    expect(document.getElementById("fond-root")!.textContent).toBe("orders/show:9");
+  });
+
+  it("does not hydrate when the root element is empty", async () => {
+    seedDom({ component: "orders/index", props: { totalCount: 4 }, url: "/orders", version: "v1" });
+
+    const resolve = vi.fn((): ComponentModule => ({ default: OrdersIndex }));
+
+    await act(async () => {
+      createFondApp({ resolve });
+    });
+
+    expect(document.getElementById("fond-root")!.textContent).toBe("orders/index:4");
   });
 });

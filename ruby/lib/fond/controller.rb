@@ -162,9 +162,10 @@ module Fond
     end
 
     def render_fond_html(payload)
-      json = payload.to_json.gsub('<', '\u003c')
+      json = payload.to_json.gsub("<", "\\u003c")
+      ssr_html = Fond::Ssr.render(payload)
       html = <<~HTML.html_safe
-        <div id="fond-root"></div>
+        <div id="fond-root">#{ssr_html}</div>
         <script type="application/json" id="fond-page-data">#{json}</script>
       HTML
       render html: html, layout: true
