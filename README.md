@@ -64,7 +64,7 @@ CI runs all three suites plus the codegen drift check; docs deploy from `main`.
 
 ## Status
 
-Early development — built as a design study. See [PLAN.md](PLAN.md) for the design rationale.
+Early development — built as a design study. See [CLAUDE.md](CLAUDE.md) for the condensed design rationale and contributor notes.
 
 ## License
 
