@@ -1,6 +1,6 @@
 // @vitest-environment node
 import type { AddressInfo } from "node:net";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { createSsrServer } from "./ssr.js";
 import type { ComponentModule } from "./app.js";
@@ -13,6 +13,10 @@ function OrdersIndex({ totalCount }: { totalCount: number }) {
 function StorePage() {
   const { label } = usePageProps<{ label: string }>("store/page");
   return createElement("span", null, `from-store:${label}`);
+}
+
+function AppLayout({ children }: { children: ReactNode }) {
+  return createElement("div", { className: "app-layout" }, children);
 }
 
 let server: ReturnType<typeof createSsrServer>;
@@ -60,6 +64,21 @@ describe("createSsrServer", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as { html: string };
     expect(body.html).toContain("from-store:hi");
+  });
+
+  it("wraps the rendered page in the module's exported layout", async () => {
+    await start(() => ({ default: OrdersIndex, layout: AppLayout }));
+
+    const res = await fetch(`${baseUrl}/render`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ component: "orders/index", props: { totalCount: 5 }, url: "/orders" }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { html: string };
+    expect(body.html).toContain("app-layout");
+    expect(body.html).toContain("orders:5");
   });
 
   it("responds to GET /health", async () => {

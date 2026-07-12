@@ -14,11 +14,13 @@ module Fond
       def initialize(pages: Fond::Registry.concrete_pages,
                       bindings: defined?(Rails) ? Fond::Routes.page_bindings : [],
                       mutations: Fond::Registry.concrete_mutations,
-                      mutation_bindings: defined?(Rails) ? Fond::Routes.mutation_bindings : [])
+                      mutation_bindings: defined?(Rails) ? Fond::Routes.mutation_bindings : [],
+                      shared_props_class: default_shared_props_class)
         @pages = pages
         @bindings = bindings
         @mutations = mutations
         @mutation_bindings = mutation_bindings
+        @shared_props_class = shared_props_class
         @ts_names = {}
         @name_cache = {}
         @emitter = TsEmitter.new(name_for: method(:name_for))
@@ -64,6 +66,17 @@ module Fond
       end
 
       private
+
+      def default_shared_props_class
+        name = Fond.config.shared_props_class_name
+        return nil unless name
+
+        begin
+          Object.const_get(name)
+        rescue NameError
+          raise Fond::Error, "fond: shared_props_class_name #{name.inspect} does not resolve to a constant"
+        end
+      end
 
       def files
         {
@@ -116,6 +129,7 @@ module Fond
 
       def discover!
         queue = []
+        queue << @shared_props_class if @shared_props_class
         @pages.each do |page|
           queue << page.params_class if page.params_class
           queue << page.props_class
@@ -221,11 +235,13 @@ module Fond
         mutation_types = sorted_mutations.flat_map do |mutation|
           [name_for(mutation.params_class), mutation.props_class && name_for(mutation.props_class)].compact
         end
-        referenced = (page_types + mutation_types).uniq.sort
+        shared_props_name = @shared_props_class && name_for(@shared_props_class)
+        referenced = (page_types + mutation_types + [shared_props_name]).compact.uniq.sort
 
         fond_imports = []
         fond_imports << "useMutation" if sorted_mutations.any?
         fond_imports << "usePageProps" if sorted_pages.any?
+        fond_imports << "useSharedProps" if @shared_props_class
         fond_imports << "type Mutation" if sorted_mutations.any?
 
         lines = HEADER.dup
@@ -240,6 +256,13 @@ module Fond
           lines << ""
           lines << "export function #{hook_name}(): #{props_name} {"
           lines << "  return usePageProps<#{props_name}>(#{page.component_name.inspect});"
+          lines << "}"
+        end
+
+        if @shared_props_class
+          lines << ""
+          lines << "export function useShared(): #{shared_props_name} {"
+          lines << "  return useSharedProps<#{shared_props_name}>();"
           lines << "}"
         end
 

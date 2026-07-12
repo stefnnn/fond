@@ -18,6 +18,10 @@ export default defineConfig({
           { text: "Getting Started", link: "/guide/getting-started" },
           { text: "Pages & DTOs", link: "/guide/pages" },
           { text: "Codegen", link: "/guide/codegen" },
+          { text: "Mutations", link: "/guide/mutations" },
+          { text: "SSR", link: "/guide/ssr" },
+          { text: "Layouts & Shared Props", link: "/guide/layouts-and-shared-props" },
+          { text: "Example App", link: "/guide/example-app" },
         ],
       },
       {

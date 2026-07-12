@@ -1,7 +1,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { setPage } from "./store.js";
-import { usePage, usePageProps } from "./hooks.js";
+import { usePage, usePageProps, useSharedProps } from "./hooks.js";
 
 afterEach(cleanup);
 
@@ -47,5 +47,33 @@ describe("usePageProps", () => {
   it("throws when the current component does not match", () => {
     setPage({ component: "orders/index", props: {}, url: "/orders", version: "v1" });
     expect(() => render(<MismatchProbe />)).toThrow(/orders\/show/);
+  });
+});
+
+interface SharedProps {
+  currentUser: string;
+}
+
+function SharedProbe() {
+  const shared = useSharedProps<SharedProps>();
+  return <div data-testid="shared">{shared.currentUser}</div>;
+}
+
+describe("useSharedProps", () => {
+  it("returns shared props cast to the expected type", () => {
+    setPage({
+      component: "orders/index",
+      props: {},
+      url: "/orders",
+      version: "v1",
+      shared: { currentUser: "ada" },
+    });
+    render(<SharedProbe />);
+    expect(screen.getByTestId("shared").textContent).toBe("ada");
+  });
+
+  it("throws a descriptive error when shared props are absent", () => {
+    setPage({ component: "orders/index", props: {}, url: "/orders", version: "v1" });
+    expect(() => render(<SharedProbe />)).toThrow(/shared/i);
   });
 });

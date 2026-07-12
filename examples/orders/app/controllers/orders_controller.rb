@@ -57,6 +57,7 @@ class OrdersController < ApplicationController
       order.order_events.create!(kind: "note", body: "Order received", author: "web", created_at: Time.current)
     end
 
+    flash[:notice] = "Order ##{order.id} created"
     redirect_page order_path(order)
   rescue ActiveRecord::RecordInvalid => e
     invalid(e.record.errors)
@@ -74,6 +75,7 @@ class OrdersController < ApplicationController
       kind: "status_change", from_status: from, to_status: order.status,
       author: "web", created_at: Time.current
     )
+    flash[:notice] = "Status changed to #{order.status}"
     redirect_page order_path(order)
   end
 
@@ -83,12 +85,14 @@ class OrdersController < ApplicationController
     return invalid(fields: { body: [ "can't be blank" ] }) if params.body.strip.empty?
 
     order.order_events.create!(kind: "note", body: params.body, author: "web", created_at: Time.current)
+    flash[:notice] = "Note added"
     redirect_page order_path(order)
   end
 
   mutation Orders::DestroyMutation
   def destroy(params)
     Order.find(params.id).destroy!
+    flash[:notice] = "Order ##{params.id} deleted"
     redirect_page orders_path
   end
 end

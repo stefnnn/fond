@@ -1,7 +1,7 @@
-import { createElement } from "react";
 import { renderToString } from "react-dom/server";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ComponentModule } from "./app.js";
+import { renderPageElement } from "./element.js";
 import { setPage } from "./store.js";
 
 export interface SsrServerOptions {
@@ -15,13 +15,10 @@ interface RenderRequest {
   props: unknown;
   url: string;
   version?: string;
+  shared?: unknown;
 }
 
 const MAX_BODY_BYTES = 10 * 1024 * 1024;
-
-function extractComponent(mod: ComponentModule) {
-  return typeof mod === "function" ? mod : mod.default;
-}
 
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
   const payload = JSON.stringify(body);
@@ -81,7 +78,6 @@ async function handleRender(
 
   try {
     const mod = await resolve(parsed.component);
-    const Component = extractComponent(mod);
     // Pages read from the store via usePage/usePageProps, so seed it for
     // this render. renderToString is synchronous — no concurrency hazard.
     setPage({
@@ -89,8 +85,9 @@ async function handleRender(
       props: parsed.props,
       url: parsed.url,
       version: parsed.version ?? "",
+      shared: parsed.shared,
     });
-    const html = renderToString(createElement(Component, parsed.props as object));
+    const html = renderToString(renderPageElement(mod, parsed.props));
     sendJson(res, 200, { html });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

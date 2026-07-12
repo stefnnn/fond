@@ -85,6 +85,17 @@ export interface OrdersUpdateStatusParams {
   status: OrderStatus;
 }
 
+export interface SharedProps {
+  appName: string;
+  flash: SharedPropsFlash;
+  openOrderCount: number;
+}
+
+export interface SharedPropsFlash {
+  notice: string | null;
+  alert: string | null;
+}
+
 export interface StatusChangeEventDTO {
   type: "status_change";
   id: number;

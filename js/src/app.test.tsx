@@ -1,4 +1,4 @@
-import { act, createElement } from "react";
+import { act, createElement, useEffect, useRef, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFondApp, type ComponentModule } from "./app.js";
@@ -9,6 +9,24 @@ function OrdersIndex({ totalCount }: { totalCount: number }) {
 
 function OrdersShow({ id }: { id: number }) {
   return <div data-testid="page">orders/show:{id}</div>;
+}
+
+let appLayoutMountCount = 0;
+
+function AppLayout({ children }: { children: ReactNode }) {
+  const mounted = useRef(false);
+  useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      appLayoutMountCount += 1;
+    }
+  }, []);
+  return (
+    <div data-testid="layout">
+      <span data-testid="layout-marker">layout</span>
+      {children}
+    </div>
+  );
 }
 
 function seedDom(payload: unknown): void {
@@ -128,6 +146,71 @@ describe("createFondApp", () => {
 
     expect(resolve).toHaveBeenCalledTimes(1);
     expect(document.getElementById("fond-root")!.textContent).toBe("orders/index:2");
+  });
+
+  it("renders the page wrapped in its exported layout", async () => {
+    seedDom({ component: "orders/index", props: { totalCount: 3 }, url: "/orders", version: "v1" });
+
+    const resolve = vi.fn(
+      (): ComponentModule => ({ default: OrdersIndex, layout: AppLayout }),
+    );
+
+    await act(async () => {
+      createFondApp({ resolve });
+    });
+
+    const root = document.getElementById("fond-root")!;
+    expect(root.querySelector('[data-testid="layout"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="page"]')!.textContent).toBe("orders/index:3");
+  });
+
+  it("renders bare, without a layout wrapper, when the page has no layout export", async () => {
+    seedDom({ component: "orders/index", props: { totalCount: 3 }, url: "/orders", version: "v1" });
+
+    const resolve = vi.fn((): ComponentModule => ({ default: OrdersIndex }));
+
+    await act(async () => {
+      createFondApp({ resolve });
+    });
+
+    const root = document.getElementById("fond-root")!;
+    expect(root.querySelector('[data-testid="layout"]')).toBeNull();
+    expect(root.textContent).toBe("orders/index:3");
+  });
+
+  it("does not remount a shared layout when navigating between pages that use it", async () => {
+    appLayoutMountCount = 0;
+    seedDom({ component: "orders/index", props: { totalCount: 3 }, url: "/orders", version: "v1" });
+
+    const modules: Record<string, ComponentModule> = {
+      "orders/index": { default: OrdersIndex, layout: AppLayout },
+      "orders/show": { default: OrdersShow, layout: AppLayout },
+    };
+
+    const resolve = vi.fn((name: string) => modules[name]!);
+
+    await act(async () => {
+      createFondApp({ resolve });
+    });
+
+    expect(appLayoutMountCount).toBe(1);
+    const root = document.getElementById("fond-root")!;
+    expect(root.querySelector('[data-testid="page"]')!.textContent).toBe("orders/index:3");
+
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({ component: "orders/show", props: { id: 9 }, url: "/orders/9", version: "v1" }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const { navigate } = await import("./router.js");
+    await act(async () => {
+      await navigate("/orders/9");
+    });
+
+    expect(root.querySelector('[data-testid="page"]')!.textContent).toBe("orders/show:9");
+    expect(appLayoutMountCount).toBe(1);
   });
 });
 

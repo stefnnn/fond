@@ -108,7 +108,7 @@ The typed-return version is implemented _as_ sugar over `render_page` anyway (a 
 Two layers, both generated and published from CI:
 
 - **Guide site** — VitePress (fits the Vite-centric stack, markdown-in-repo under `docs/`). Structure: getting started (install gem + npm package, mount codegen), the conventions (pages, DTOs, controller signature), transport protocol reference (headers, status codes, redirect/version semantics — this doubles as the spec for anyone reimplementing the client), and a cookbook (forms, layouts, shared props).
-- **API reference** — YARD for the Ruby surface (`AppPage`, `render_page`, codegen config), TypeDoc for the TS runtime (router, hook factories). Both emit static HTML into the VitePress build output (`docs/.vitepress/dist/api/ruby`, `.../api/ts`) so the whole site ships as one artifact. Generated hooks/types don't need reference docs — they're project-specific output; document the *shape* in the guide instead.
+- **API reference** — deferred. The public surface is small enough that the guide + protocol reference cover it; YARD/TypeDoc can be added to the same Pages artifact later if the API grows. Generated hooks/types don't need reference docs — they're project-specific output; document the *shape* in the guide instead.
 
 Publishing via GitHub Actions → GitHub Pages (repo is already public, so Pages is free):
 

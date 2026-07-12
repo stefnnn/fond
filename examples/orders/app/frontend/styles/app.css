@@ -76,3 +76,23 @@ a:hover { text-decoration: underline; }
 .note-form input { flex: 1; }
 button.danger { background: #fff; color: #a32723; border: 1px solid #e6b6b4; border-radius: 8px; padding: 0.35rem 0.8rem; cursor: pointer; }
 select { padding: 0.3rem 0.5rem; border-radius: 8px; border: 1px solid var(--border); font: inherit; }
+
+.app-header {
+  display: flex; align-items: center; gap: 2rem; padding: 0.8rem 1.5rem;
+  border-bottom: 1px solid var(--border); background: #fff;
+}
+.app-header .brand { font-weight: 700; color: var(--fg); }
+.app-header nav { display: flex; gap: 1.25rem; }
+.count-badge {
+  display: inline-block; margin-left: 0.35rem; padding: 0 0.45rem;
+  background: var(--accent); color: #fff; border-radius: 999px; font-size: 0.75rem;
+}
+.toast {
+  position: fixed; top: 1rem; right: 1rem; z-index: 10;
+  padding: 0.6rem 1rem; border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.toast-notice { background: #e2f4e6; color: #176b2c; }
+.toast-alert { background: #fbe5e4; color: #a32723; }
+.button-link {
+  border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.8rem; color: var(--fg);
+}

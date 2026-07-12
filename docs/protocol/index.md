@@ -26,6 +26,7 @@ Caching correctness: every response to a Fond-routed action carries `Vary: X-Fon
 - `props` — the page's `Props` struct serialized to camelCase JSON. Temporal values are ISO8601 strings (UTC, millisecond precision for times).
 - `url` — the canonical URL (path + query) of this payload, used for history state.
 - `version` — the current asset version. See [Version mismatch](#version-mismatch).
+- `shared` — optional; present when the app defines shared props (`fond_shared_props`). Serialized like `props` and carried on every page payload.
 
 ## Initial request (HTML)
 

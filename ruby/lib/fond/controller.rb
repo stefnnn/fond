@@ -58,6 +58,8 @@ module Fond
         url: request.fullpath,
         version: Fond.config.version.call
       }
+      shared = fond_shared_props
+      payload[:shared] = Fond::Serialize.to_wire(shared) if shared
 
       if fond_request?
         response.set_header("Vary", "X-Fond")
@@ -73,6 +75,11 @@ module Fond
 
     def invalid(source = nil, **kwargs)
       source.is_a?(Fond::Invalid) ? source : Fond::Invalid.new(source, **kwargs)
+    end
+
+    # Override to merge a SharedProps struct into every page payload.
+    def fond_shared_props
+      nil
     end
 
     private

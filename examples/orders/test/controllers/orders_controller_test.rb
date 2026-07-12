@@ -68,6 +68,14 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "shared props are merged into every payload" do
+    get orders_url, headers: { "X-Fond" => "true" }
+    shared = response.parsed_body["shared"]
+    assert_equal "Fond Orders", shared["appName"]
+    assert_equal 0, shared["openOrderCount"] # setup order is paid
+    assert_equal({ "notice" => nil, "alert" => nil }, shared["flash"])
+  end
+
   test "unknown status enum value responds 400" do
     get orders_url(status: "bogus"), headers: { "X-Fond" => "true" }
     assert_response :bad_request

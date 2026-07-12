@@ -1,20 +1,17 @@
-import { createElement, useEffect, useState, type ComponentType } from "react";
+import { createElement, useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { setPage, type PagePayload } from "./store.js";
 import { usePage } from "./hooks.js";
 import { installClickInterceptor, installPopStateListener } from "./router.js";
+import { resolveComponentModule, renderResolvedElement, type ResolvedComponent } from "./element.js";
 
 export type ComponentModule =
-  | { default: ComponentType<any> }
+  | { default: ComponentType<any>; layout?: ComponentType<{ children: ReactNode }> }
   | ComponentType<any>;
 
 export interface CreateFondAppOptions {
   resolve: (component: string) => Promise<ComponentModule> | ComponentModule;
   rootId?: string;
-}
-
-function extractComponent(mod: ComponentModule): ComponentType<any> {
-  return typeof mod === "function" ? mod : mod.default;
 }
 
 function readInitialPage(): PagePayload {
@@ -28,19 +25,20 @@ function readInitialPage(): PagePayload {
 interface Rendered {
   name: string;
   Component: ComponentType<any>;
+  Layout?: ComponentType<{ children: ReactNode }>;
   props: unknown;
 }
 
 function createFondAppComponent(
   resolve: CreateFondAppOptions["resolve"],
-  cache: Map<string, ComponentType<any>>,
+  cache: Map<string, ResolvedComponent>,
 ) {
   return function FondApp(): React.ReactElement | null {
     const page = usePage();
     const [rendered, setRendered] = useState<Rendered | null>(() => {
       const cached = cache.get(page.component);
       return cached
-        ? { name: page.component, Component: cached, props: page.props }
+        ? { name: page.component, ...cached, props: page.props }
         : null;
     });
 
@@ -49,15 +47,15 @@ function createFondAppComponent(
 
       const cached = cache.get(page.component);
       if (cached) {
-        setRendered({ name: page.component, Component: cached, props: page.props });
+        setRendered({ name: page.component, ...cached, props: page.props });
         return;
       }
 
       Promise.resolve(resolve(page.component)).then((mod) => {
+        const resolvedComponent = resolveComponentModule(mod);
+        cache.set(page.component, resolvedComponent);
         if (cancelled) return;
-        const Component = extractComponent(mod);
-        cache.set(page.component, Component);
-        setRendered({ name: page.component, Component, props: page.props });
+        setRendered({ name: page.component, ...resolvedComponent, props: page.props });
       });
 
       return () => {
@@ -66,7 +64,7 @@ function createFondAppComponent(
     }, [page.component, page.props]);
 
     if (!rendered) return null;
-    return createElement(rendered.Component, rendered.props as object);
+    return renderResolvedElement(rendered.Component, rendered.Layout, rendered.props);
   };
 }
 
@@ -84,13 +82,13 @@ export function createFondApp(options: CreateFondAppOptions): void {
     throw new Error(`fond: missing root element #${rootId}`);
   }
 
-  const cache = new Map<string, ComponentType<any>>();
+  const cache = new Map<string, ResolvedComponent>();
   const FondApp = createFondAppComponent(resolve, cache);
 
   if (rootEl.hasChildNodes()) {
     Promise.resolve(resolve(initialPage.component))
       .then((mod) => {
-        cache.set(initialPage.component, extractComponent(mod));
+        cache.set(initialPage.component, resolveComponentModule(mod));
         hydrateRoot(rootEl, createElement(FondApp));
       })
       .catch((err) => {

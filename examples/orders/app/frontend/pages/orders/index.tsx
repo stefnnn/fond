@@ -101,3 +101,5 @@ function PageLink(props: {
     </a>
   );
 }
+
+export { AppLayout as layout } from "../../components/AppLayout";

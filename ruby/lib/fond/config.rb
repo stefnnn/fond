@@ -3,7 +3,8 @@
 
 module Fond
   class Config
-    attr_accessor :output_dir, :version, :pages_import_prefix, :ssr_url, :ssr_timeout
+    attr_accessor :output_dir, :version, :pages_import_prefix, :ssr_url, :ssr_timeout,
+                  :shared_props_class_name
 
     def initialize
       @output_dir = "app/frontend/generated"
@@ -11,6 +12,7 @@ module Fond
       @pages_import_prefix = "../pages/"
       @ssr_url = nil
       @ssr_timeout = 1.0
+      @shared_props_class_name = nil
     end
   end
 

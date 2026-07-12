@@ -14,3 +14,13 @@ export function usePageProps<T>(expected?: string): T {
   }
   return page.props as T;
 }
+
+export function useSharedProps<T>(): T {
+  const page = usePage();
+  if (page.shared === undefined) {
+    throw new Error(
+      "fond: useSharedProps called but no shared props were provided by the server",
+    );
+  }
+  return page.shared as T;
+}

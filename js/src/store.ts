@@ -3,6 +3,7 @@ export interface PagePayload {
   props: unknown;
   url: string;
   version: string;
+  shared?: unknown;
 }
 
 type Listener = () => void;

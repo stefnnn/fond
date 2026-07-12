@@ -114,3 +114,5 @@ export default function OrdersShow() {
     </main>
   );
 }
+
+export { AppLayout as layout } from "../../components/AppLayout";

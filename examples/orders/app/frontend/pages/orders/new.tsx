@@ -106,3 +106,5 @@ export default function OrdersNew() {
     </main>
   );
 }
+
+export { AppLayout as layout } from "../../components/AppLayout";
