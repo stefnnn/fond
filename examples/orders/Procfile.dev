@@ -1,3 +1,4 @@
 
 vite: bin/vite dev
 web: bin/rails s
+# ssr: node tmp/ssr/ssr.js   # build first: pnpm exec vite build --config vite.ssr.config.ts

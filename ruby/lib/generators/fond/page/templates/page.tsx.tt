@@ -1,0 +1,13 @@
+import { <%= fond_hook_name %> } from "<%= fond_hooks_import_path %>";
+
+export default function <%= fond_component_name %>() {
+  const { name } = <%= fond_hook_name %>();
+
+  return (
+    <main>
+      <p>{name}</p>
+    </main>
+  );
+}
+
+// export { AppLayout as layout } from "<%= fond_relative_import_path %>components/AppLayout";

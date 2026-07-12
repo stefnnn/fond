@@ -33,6 +33,19 @@ module Fond
         @pages = []
         @mutations = []
       end
+
+      # Drop entries orphaned by code reloading: classes whose constant no
+      # longer resolves back to the same object (Zeitwerk unloaded them).
+      def prune!
+        [@pages ||= [], @mutations ||= []].each do |list|
+          list.select! do |klass|
+            klass.name && Object.const_defined?(klass.name) && Object.const_get(klass.name).equal?(klass)
+          rescue NameError
+            false
+          end
+          list.uniq!
+        end
+      end
     end
   end
 end

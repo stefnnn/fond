@@ -6,21 +6,35 @@ Fond is under active development. APIs may change.
 
 ## Install
 
+Add the gem, run the installer, and let it wire everything below for you:
+
 ```bash
 bundle add fond
-pnpm add fond
+bin/rails g fond:install        # add --ssr for the sidecar scaffolding
+bundle install                  # picks up vite_rails + sorbet-runtime added by the installer
+bundle exec vite install        # if config/vite.json doesn't exist yet
 ```
 
-`fond` (the gem) also needs `sorbet-runtime` and `vite_rails`:
+The installer mounts `Fond::Controller`, creates the initializer and the
+`app/frontend` scaffold (entrypoint, `pages/`, `tsconfig.json`,
+`vite.config.ts`), injects the Vite tags into your layout, registers the
+`DTO` inflection, adds the npm dependencies (pnpm/yarn/npm auto-detected;
+`--skip-npm` to opt out), and writes `Procfile.dev` + `bin/dev`. It is
+idempotent — re-running skips what's already in place.
+
+Scaffold your first page and mutation with:
 
 ```bash
-bundle add sorbet-runtime vite_rails
+bin/rails g fond:page Orders::Index
+bin/rails g fond:mutation Orders::Create
 ```
 
+Each prints the route and controller snippet to add. The sections below
+describe what the installer set up, in case you prefer wiring it manually.
+
 Fond's protocol is built on top of Vite — `vite_rails` gives you the dev
-server, HMR, and asset manifest. Follow its own install steps
-(`bundle exec vite install`) if you haven't already; you need a
-`vite.config.ts` with `@vitejs/plugin-react` and `vite-plugin-ruby`:
+server, HMR, and asset manifest. You need a `vite.config.ts` with
+`@vitejs/plugin-react` and `vite-plugin-ruby`:
 
 ```ts
 // vite.config.ts
@@ -182,8 +196,11 @@ vite: bin/vite dev
 web: bin/rails s
 ```
 
-Re-run `bin/rails fond:codegen` whenever you add/change a page, mutation,
-or DTO. There's no watcher yet — codegen is a one-shot rake task.
+In development, codegen runs automatically: fond hooks into Rails' code
+reloading and regenerates the output whenever a page, mutation, or DTO
+changes (on the next request, like any Rails reload). `bin/rails
+fond:codegen` remains available for one-shot runs, and
+`Fond.config.autogenerate = false` opts out.
 
 In CI, check for drift instead of regenerating:
 

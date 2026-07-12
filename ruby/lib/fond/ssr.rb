@@ -36,7 +36,11 @@ module Fond
 
         @warned[error.class] = true
         message = "fond: SSR sidecar unavailable, falling back to CSR (#{error.class}: #{error.message})"
-        defined?(Rails) ? Rails.logger.warn(message) : warn(message)
+        if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+          Rails.logger.warn(message)
+        else
+          warn(message)
+        end
       end
     end
   end

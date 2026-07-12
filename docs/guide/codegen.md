@@ -196,8 +196,24 @@ Fond.configure do |config|
   config.version = -> { "dev" }                      # default; see the protocol's version mismatch handling
   config.ssr_url = nil                                # see SSR
   config.ssr_timeout = 1.0
+  config.autogenerate = true                          # dev-mode codegen on code reload
+  config.autogenerate_dirs = %w[app/pages app/mutations]
 end
 ```
+
+## Automatic regeneration in development
+
+With `autogenerate` on (the default), fond regenerates the output on every
+Rails code reload: it eager-loads `autogenerate_dirs`, prunes classes
+orphaned by the reload, and rewrites only files whose content changed.
+Editing a `Props` struct and refreshing the browser is enough — no manual
+codegen step. Production and test environments never autogenerate; CI
+should run the drift check.
+
+One rule to keep reloading healthy: **one constant per file** (standard
+Zeitwerk convention). A DTO file defining two structs will appear to work
+until the first reload, then fail with a sorbet "redefine prop" error,
+because Zeitwerk only unloads the constant matching the file name.
 
 `pages_import_prefix` must match wherever your entrypoint's
 `import.meta.glob` is rooted, since `pages.ts` literally emits

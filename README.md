@@ -32,6 +32,7 @@ export default function OrdersIndex() {
 
 ## What's in the box
 
+- **Installer & generators** — `rails g fond:install` wires an existing Rails app (frontend lives in `app/frontend`, one repo); `fond:page` / `fond:mutation` scaffold both sides of the contract. In development, codegen re-runs automatically on code reload.
 - **Pages** — `Params -> Props` controller actions with coercion at the boundary (`"2"` → `2`, `""` → `nil`, ISO8601 → `Time`, enum strings → `T::Enum`), 400 with a typed error map on bad input.
 - **Codegen** — `types.ts` (interfaces, literal-union enums, discriminated unions), `hooks.ts`, `paths.ts`, `pages.ts`; deterministic output plus a CI drift check (`fond:codegen:check`).
 - **Transport** — Inertia-style: HTML shell + hydration payload on first load, JSON payloads for soft navigations, asset-version conflict handling, `Vary: X-Fond`.
