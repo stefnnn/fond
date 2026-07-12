@@ -1,0 +1,11 @@
+{
+  "name": "fond-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "pnpm --filter fond build",
+    "test": "pnpm --filter fond test",
+    "docs:dev": "pnpm --filter fond-docs dev",
+    "docs:build": "pnpm --filter fond-docs build"
+  },
+  "packageManager": "pnpm@10.0.0"
+}
