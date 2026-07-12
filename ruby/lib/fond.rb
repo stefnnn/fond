@@ -7,4 +7,13 @@ module Fond
 end
 
 require "fond/version"
+require "fond/error"
+require "fond/naming"
+require "fond/config"
+require "fond/registry"
+require "fond/page"
+require "fond/coerce"
+require "fond/serialize"
+require "fond/codegen/ts_emitter"
+require "fond/codegen/generator"
 require "fond/railtie" if defined?(Rails::Railtie)
