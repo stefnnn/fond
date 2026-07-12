@@ -12,9 +12,13 @@ module Fond
       FILE_NAMES = %w[types.ts pages.ts hooks.ts paths.ts].freeze
 
       def initialize(pages: Fond::Registry.concrete_pages,
-                      bindings: defined?(Rails) ? Fond::Routes.page_bindings : [])
+                      bindings: defined?(Rails) ? Fond::Routes.page_bindings : [],
+                      mutations: Fond::Registry.concrete_mutations,
+                      mutation_bindings: defined?(Rails) ? Fond::Routes.mutation_bindings : [])
         @pages = pages
         @bindings = bindings
+        @mutations = mutations
+        @mutation_bindings = mutation_bindings
         @ts_names = {}
         @name_cache = {}
         @emitter = TsEmitter.new(name_for: method(:name_for))
@@ -74,15 +78,24 @@ module Fond
         @sorted_pages ||= @pages.sort_by(&:component_name)
       end
 
+      def sorted_mutations
+        @sorted_mutations ||= @mutations.sort_by(&:mutation_name)
+      end
+
       def binding_for(page)
         @binding_by_page ||= @bindings.each_with_object({}) { |b, h| h[b.page] = b }
         @binding_by_page.fetch(page) { raise Fond::Error, "fond: no route binding for #{page.name}" }
       end
 
+      def mutation_binding_for(mutation)
+        @binding_by_mutation ||= @mutation_bindings.each_with_object({}) { |b, h| h[b.page] = b }
+        @binding_by_mutation.fetch(mutation) { raise Fond::Error, "fond: no route binding for #{mutation.name}" }
+      end
+
       def name_for(klass)
         return @name_cache[klass] if @name_cache.key?(klass)
 
-        segments = klass.name.split("::").map { |s| s.end_with?("Page") ? s.delete_suffix("Page") : s }
+        segments = klass.name.split("::").map { |s| strip_generated_suffix(s) }
         ts_name = segments.join
 
         existing = @ts_names[ts_name]
@@ -94,11 +107,24 @@ module Fond
         @name_cache[klass] = ts_name
       end
 
+      def strip_generated_suffix(segment)
+        return segment.delete_suffix("Page") if segment.end_with?("Page")
+        return segment.delete_suffix("Mutation") if segment.end_with?("Mutation")
+
+        segment
+      end
+
       def discover!
         queue = []
         @pages.each do |page|
           queue << page.params_class if page.params_class
           queue << page.props_class
+        end
+        @mutations.each do |mutation|
+          raise Fond::Error, "fond: #{mutation.name} must define a Params struct" unless mutation.params_class
+
+          queue << mutation.params_class
+          queue << mutation.props_class if mutation.props_class
         end
 
         until queue.empty?
@@ -191,11 +217,20 @@ module Fond
       end
 
       def build_hooks_ts
-        referenced = sorted_pages.map { |page| name_for(page.props_class) }.uniq.sort
+        page_types = sorted_pages.map { |page| name_for(page.props_class) }
+        mutation_types = sorted_mutations.flat_map do |mutation|
+          [name_for(mutation.params_class), mutation.props_class && name_for(mutation.props_class)].compact
+        end
+        referenced = (page_types + mutation_types).uniq.sort
+
+        fond_imports = []
+        fond_imports << "useMutation" if sorted_mutations.any?
+        fond_imports << "usePageProps" if sorted_pages.any?
+        fond_imports << "type Mutation" if sorted_mutations.any?
 
         lines = HEADER.dup
         lines << ""
-        lines << "import { usePageProps } from \"fond\";"
+        lines << "import { #{fond_imports.join(', ')} } from \"fond\";"
         lines << "import type { #{referenced.join(', ')} } from \"./types\";" if referenced.any?
 
         sorted_pages.each do |page|
@@ -208,7 +243,28 @@ module Fond
           lines << "}"
         end
 
+        sorted_mutations.each do |mutation|
+          lines.concat(mutation_hook_lines(mutation))
+        end
+
         "#{lines.join("\n")}\n"
+      end
+
+      def mutation_hook_lines(mutation)
+        route_binding = mutation_binding_for(mutation)
+        hook_name = "use#{name_for(mutation)}"
+        params_name = name_for(mutation.params_class)
+        props_name = mutation.props_class ? name_for(mutation.props_class) : "null"
+        path_params = route_binding.required_params.map { |p| Fond::Naming.camelize(p) }
+        path_params_array = "[#{path_params.map(&:inspect).join(', ')}]"
+
+        [
+          "",
+          "export function #{hook_name}(): Mutation<#{params_name}, #{props_name}> {",
+          "  return useMutation<#{params_name}, #{props_name}>(" \
+          "#{route_binding.path.inspect}, #{route_binding.verb.downcase.inspect}, #{path_params_array});",
+          "}"
+        ]
       end
 
       def build_paths_ts

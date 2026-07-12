@@ -7,6 +7,8 @@ import type { OrdersIndexParams, OrdersShowParams } from "./types";
 export const paths = {
   ordersIndex: (params?: Partial<OrdersIndexParams>) =>
     buildPath("/orders", [], params),
+  ordersNew: () =>
+    buildPath("/orders/new", []),
   ordersShow: (params: Pick<OrdersShowParams, "id"> & Partial<Omit<OrdersShowParams, "id">>) =>
     buildPath("/orders/:id", ["id"], params),
 };

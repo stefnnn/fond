@@ -1,18 +1,49 @@
-import { useOrdersShow } from "../../generated/hooks";
+import { useState } from "react";
+import {
+  useOrdersShow,
+  useOrdersUpdateStatus,
+  useOrdersAddNote,
+  useOrdersDestroy,
+} from "../../generated/hooks";
 import { paths } from "../../generated/paths";
+import type { OrderStatus } from "../../generated/types";
 import { Money } from "../../components/Money";
-import { StatusBadge } from "../../components/StatusBadge";
+import { StatusBadge, STATUSES } from "../../components/StatusBadge";
+import { BaseErrors, FieldErrors } from "../../components/FormErrors";
 
 export default function OrdersShow() {
   const { order, lineItems, activity } = useOrdersShow();
+  const updateStatus = useOrdersUpdateStatus();
+  const addNote = useOrdersAddNote();
+  const destroy = useOrdersDestroy();
+  const [note, setNote] = useState("");
 
   return (
     <main className="container">
       <p><a href={paths.ordersIndex()}>‹ All orders</a></p>
       <header className="page-header">
         <h1>Order #{order.id}</h1>
-        <StatusBadge status={order.status} />
+        <span>
+          <StatusBadge status={order.status} />{" "}
+          <select
+            value={order.status}
+            disabled={updateStatus.pending}
+            onChange={(e) =>
+              void updateStatus.mutate({ id: order.id, status: e.target.value as OrderStatus })
+            }
+          >
+            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>{" "}
+          <button
+            className="danger"
+            disabled={destroy.pending}
+            onClick={() => confirm("Delete this order?") && void destroy.mutate({ id: order.id })}
+          >
+            Delete
+          </button>
+        </span>
       </header>
+      <BaseErrors errors={updateStatus.errors} />
 
       <dl className="order-meta">
         <dt>Customer</dt>
@@ -51,6 +82,21 @@ export default function OrdersShow() {
       </table>
 
       <h2>Activity</h2>
+      <form
+        className="note-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void addNote.mutate({ id: order.id, body: note }).then((r) => r.ok && setNote(""));
+        }}
+      >
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Add a note…"
+        />
+        <button type="submit" disabled={addNote.pending}>Add</button>
+        <FieldErrors errors={addNote.errors} field="body" />
+      </form>
       <ul className="activity">
         {activity.map((event) => (
           <li key={`${event.type}-${event.id}`}>

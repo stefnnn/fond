@@ -26,4 +26,69 @@ class OrdersController < ApplicationController
       activity: order.order_events.order(created_at: :desc).map { OrderEventDTOMapper.from_model(it) }
     )
   end
+
+  page Orders::NewPage
+  def new
+    Orders::NewPage::Props.new(suggested_products: LineItem.distinct.order(:product_name).pluck(:product_name))
+  end
+
+  mutation Orders::CreateMutation
+  def create(params)
+    if params.line_items.empty?
+      return invalid(base: [ "Add at least one line item" ])
+    end
+
+    order = Order.new(
+      customer_name: params.customer_name,
+      customer_email: params.customer_email,
+      notes: params.notes,
+      status: "pending",
+      placed_at: Time.current
+    )
+
+    Order.transaction do
+      order.save!
+      params.line_items.each do |li|
+        order.line_items.create!(
+          product_name: li.product_name, quantity: li.quantity, unit_price_cents: li.unit_price_cents
+        )
+      end
+      order.recalculate_total!
+      order.order_events.create!(kind: "note", body: "Order received", author: "web", created_at: Time.current)
+    end
+
+    redirect_page order_path(order)
+  rescue ActiveRecord::RecordInvalid => e
+    invalid(e.record.errors)
+  end
+
+  mutation Orders::UpdateStatusMutation
+  def update_status(params)
+    order = Order.find(params.id)
+    from = order.status
+
+    return invalid(base: [ "Order is already #{from}" ]) if from == params.status.serialize
+
+    order.update!(status: params.status.serialize)
+    order.order_events.create!(
+      kind: "status_change", from_status: from, to_status: order.status,
+      author: "web", created_at: Time.current
+    )
+    redirect_page order_path(order)
+  end
+
+  mutation Orders::AddNoteMutation
+  def add_note(params)
+    order = Order.find(params.id)
+    return invalid(fields: { body: [ "can't be blank" ] }) if params.body.strip.empty?
+
+    order.order_events.create!(kind: "note", body: params.body, author: "web", created_at: Time.current)
+    redirect_page order_path(order)
+  end
+
+  mutation Orders::DestroyMutation
+  def destroy(params)
+    Order.find(params.id).destroy!
+    redirect_page orders_path
+  end
 end

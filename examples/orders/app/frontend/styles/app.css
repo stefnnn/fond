@@ -55,3 +55,24 @@ a:hover { text-decoration: underline; }
 
 .activity { list-style: none; padding: 0; }
 .activity li { padding: 0.45rem 0; border-bottom: 1px solid var(--border); }
+
+.order-form { max-width: 480px; display: flex; flex-direction: column; gap: 0.9rem; }
+.order-form label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; }
+.order-form input, .order-form textarea, .note-form input {
+  padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font: inherit;
+}
+.order-form button, .note-form button {
+  padding: 0.45rem 0.9rem; border-radius: 8px; border: 1px solid var(--fg);
+  background: var(--fg); color: #fff; cursor: pointer; font: inherit;
+}
+.order-form button.secondary { background: #fff; color: var(--fg); border-color: var(--border); align-self: flex-start; }
+.order-form button:disabled { opacity: 0.6; }
+.item-row { display: grid; grid-template-columns: 1fr 4.5rem 6rem 2rem; gap: 0.4rem; }
+.item-row button { background: #fff; color: var(--muted); border: 1px solid var(--border); }
+.error-box { background: #fbe5e4; color: #a32723; border-radius: 8px; padding: 0.6rem 0.9rem; }
+.error-box p { margin: 0.2rem 0; }
+.field-error { color: #a32723; font-size: 0.85rem; }
+.note-form { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.75rem; }
+.note-form input { flex: 1; }
+button.danger { background: #fff; color: #a32723; border: 1px solid #e6b6b4; border-radius: 8px; padding: 0.35rem 0.8rem; cursor: pointer; }
+select { padding: 0.3rem 0.5rem; border-radius: 8px; border: 1px solid var(--border); font: inherit; }

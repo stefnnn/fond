@@ -79,4 +79,30 @@ Incoming params are gathered from path params, then query params, then JSON body
 
 ## Mutations
 
-Defined in milestone 3. Mutations respond with either a page payload (200), a validation-errors payload (422), or a redirect instruction (JSON, not an HTTP redirect) which the router follows as a navigation.
+Mutations are `POST`/`PATCH`/`PUT`/`DELETE` actions declared with a `Fond::Mutation` class. They are fetch-only (no HTML representation) and exempt from the version check.
+
+**Request:**
+
+```
+POST /orders
+Content-Type: application/json
+X-Fond: true
+X-CSRF-Token: <from the csrf-token meta tag>
+
+{ "customerName": "Nora", "lineItems": [...] }
+```
+
+The body is coerced into the mutation's `Params` struct with the same rules as page params. Path params (`/orders/:id`) are merged into the same struct — the client runtime splits them out of the params object it is given.
+
+**Responses:**
+
+| Status | Body | Client behavior |
+| --- | --- | --- |
+| `200` | `{ "redirect": "/orders/5" }` | Soft-navigate to the URL (the common success case) |
+| `200` | `{ "props": { ... } }` | Resolve `mutate()` with the typed payload (`props` is `null` for `Fond::Done`) |
+| `422` | `{ "errors": { "base": ["..."], "fields": { "customerName": ["can't be blank"] } } }` | Populate the hook's `errors` state; `mutate()` resolves unsuccessfully |
+| `400` | `{ "error": "invalid_params", "errors": { ... } }` | Throw — a coercion failure means client and server types diverge (a bug, not user error) |
+
+Validation errors use one canonical shape everywhere: `base` for record-level messages, `fields` keyed by camelCase attribute name. Rails-side, returning an `ActiveModel::Errors` (or a saved-record failure via `Fond::Invalid`) converts automatically.
+
+Redirects are encoded in the JSON body rather than HTTP redirects, so `fetch` never transparently follows them and the client router stays in control.

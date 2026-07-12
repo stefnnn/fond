@@ -17,8 +17,21 @@ module Fond
         pages.select { |p| p.name && p.const_defined?(:Props, false) }.sort_by(&:name)
       end
 
+      def register_mutation(mutation_class)
+        mutations << mutation_class
+      end
+
+      def mutations
+        @mutations ||= []
+      end
+
+      def concrete_mutations
+        mutations.select { |m| m.name && m.const_defined?(:Params, false) }.sort_by(&:name)
+      end
+
       def reset!
         @pages = []
+        @mutations = []
       end
     end
   end

@@ -26,12 +26,25 @@ module Fond
         fond_pages[action.to_sym] = page_class
       end
 
+      def mutation(mutation_class, action: nil)
+        action ||= mutation_class.mutation_name.split("/").last
+        fond_mutations[action.to_sym] = mutation_class
+      end
+
       def fond_pages
         @fond_pages ||= superclass.respond_to?(:fond_pages) ? superclass.fond_pages.dup : {}
       end
 
+      def fond_mutations
+        @fond_mutations ||= superclass.respond_to?(:fond_mutations) ? superclass.fond_mutations.dup : {}
+      end
+
       def fond_page_for(action)
         fond_pages[action.to_sym]
+      end
+
+      def fond_mutation_for(action)
+        fond_mutations[action.to_sym]
       end
     end
 
@@ -54,6 +67,14 @@ module Fond
       end
     end
 
+    def redirect_page(url)
+      Fond::Redirect.new(url)
+    end
+
+    def invalid(source = nil, **kwargs)
+      source.is_a?(Fond::Invalid) ? source : Fond::Invalid.new(source, **kwargs)
+    end
+
     private
 
     # BasicImplicitRender#send_action calls default_render inside super —
@@ -61,12 +82,13 @@ module Fond
     # plain send and replicate the implicit-render fallback afterwards.
     def send_action(method_name, *args)
       page_class = self.class.fond_page_for(method_name)
-      return super unless page_class
+      mutation_class = self.class.fond_mutation_for(method_name)
+      return super unless page_class || mutation_class
 
       response.set_header("Vary", "X-Fond")
-      return if fond_version_mismatch?
+      return if page_class && fond_version_mismatch?
 
-      typed_params = build_fond_params(page_class)
+      typed_params = build_fond_params(page_class || mutation_class)
       return if performed?
 
       result =
@@ -76,9 +98,32 @@ module Fond
           send(method_name, typed_params)
         end
 
-      render_page(result, page: page_class) if !performed? && result.is_a?(T::Struct)
+      if !performed?
+        if page_class
+          render_page(result, page: page_class) if result.is_a?(T::Struct)
+        else
+          render_mutation_result(result)
+        end
+      end
       default_render unless performed?
       result
+    end
+
+    def render_mutation_result(result)
+      case result
+      when Fond::Redirect
+        render json: { redirect: result.url }
+      when Fond::Invalid
+        render json: { errors: result.to_wire }, status: :unprocessable_content
+      when T::Struct
+        render json: { props: Fond::Serialize.to_wire(result) }
+      else
+        if result == Fond::Done
+          render json: { props: nil }
+        elsif defined?(ActiveModel::Errors) && result.is_a?(ActiveModel::Errors)
+          render json: { errors: Fond::Invalid.new(result).to_wire }, status: :unprocessable_content
+        end
+      end
     end
 
     def fond_request?

@@ -30,6 +30,28 @@ export interface OrderDTO {
   notes: string | null;
 }
 
+export interface OrdersAddNoteParams {
+  id: number;
+  body: string;
+}
+
+export interface OrdersCreateLineItemInput {
+  productName: string;
+  quantity: number;
+  unitPriceCents: number;
+}
+
+export interface OrdersCreateParams {
+  customerName: string;
+  customerEmail: string;
+  notes: string | null;
+  lineItems: OrdersCreateLineItemInput[];
+}
+
+export interface OrdersDestroyParams {
+  id: number;
+}
+
 export interface OrdersIndexParams {
   status: OrderStatus | null;
   query: string | null;
@@ -44,6 +66,10 @@ export interface OrdersIndexProps {
   statusCounts: Record<string, number>;
 }
 
+export interface OrdersNewProps {
+  suggestedProducts: string[];
+}
+
 export interface OrdersShowParams {
   id: number;
 }
@@ -52,6 +78,11 @@ export interface OrdersShowProps {
   order: OrderDTO;
   lineItems: LineItemDTO[];
   activity: (NoteEventDTO | StatusChangeEventDTO)[];
+}
+
+export interface OrdersUpdateStatusParams {
+  id: number;
+  status: OrderStatus;
 }
 
 export interface StatusChangeEventDTO {

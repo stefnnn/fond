@@ -6,3 +6,5 @@ export { navigate, FondParamsError } from "./router.js";
 export { usePage, usePageProps } from "./hooks.js";
 export { buildPath } from "./path.js";
 export type { PagePayload } from "./store.js";
+export { useMutation } from "./mutation.js";
+export type { Mutation, MutationOutcome, FormErrors } from "./mutation.js";

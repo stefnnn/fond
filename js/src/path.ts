@@ -11,27 +11,36 @@ function stringifyValue(value: unknown): string | null {
   return String(value);
 }
 
-export function buildPath(
+export function interpolatePath(
   pattern: string,
-  pathParams: string[],
-  params: Record<string, unknown> = {},
-): string {
-  const pathParamKeys = new Set(pathParams.map(snakeToCamel));
-  const used = new Set<string>();
+  params: Record<string, unknown>,
+): { path: string; usedKeys: Set<string> } {
+  const usedKeys = new Set<string>();
 
   const path = pattern.replace(/:([a-zA-Z0-9_]+)/g, (_, name: string) => {
     const key = snakeToCamel(name);
     if (!(key in params) || params[key] === null || params[key] === undefined) {
       throw new Error(`fond: missing path param "${name}" for pattern "${pattern}"`);
     }
-    used.add(key);
+    usedKeys.add(key);
     const value = stringifyValue(params[key]);
     return encodeURIComponent(value ?? "");
   });
 
+  return { path, usedKeys };
+}
+
+export function buildPath(
+  pattern: string,
+  pathParams: string[],
+  params: Record<string, unknown> = {},
+): string {
+  const pathParamKeys = new Set(pathParams.map(snakeToCamel));
+  const { path, usedKeys } = interpolatePath(pattern, params);
+
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (pathParamKeys.has(key) && used.has(key)) continue;
+    if (pathParamKeys.has(key) && usedKeys.has(key)) continue;
     const stringified = stringifyValue(value);
     if (stringified === null) continue;
     query.append(key, stringified);

@@ -19,6 +19,7 @@ export default function OrdersIndex() {
     <main className="container">
       <header className="page-header">
         <h1>Orders</h1>
+        <a className="button-link" href={paths.ordersNew()}>+ New order</a>
         <form
           onSubmit={(e) => {
             e.preventDefault();

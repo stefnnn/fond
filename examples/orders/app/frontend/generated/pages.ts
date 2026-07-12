@@ -3,6 +3,7 @@
 
 export const pages = {
   "orders/index": () => import("../pages/orders/index"),
+  "orders/new": () => import("../pages/orders/new"),
   "orders/show": () => import("../pages/orders/show"),
 };
 export type PageComponentName = keyof typeof pages;
