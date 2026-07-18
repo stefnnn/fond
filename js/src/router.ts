@@ -64,13 +64,23 @@ function pageVersionOrUndefined(): string | undefined {
   }
 }
 
+function assertSameOrigin(url: string): string {
+  const resolved = new URL(url, location.href);
+  if (resolved.origin !== location.origin) {
+    throw new Error(`fond: refusing to navigate to cross-origin URL: ${url}`);
+  }
+  return resolved.pathname + resolved.search + resolved.hash;
+}
+
 export async function navigate(
   url: string,
   opts: NavigateOptions = {},
 ): Promise<void> {
+  const target = assertSameOrigin(url);
+
   let payload: PagePayload | "conflict";
   try {
-    payload = await fetchPage(url);
+    payload = await fetchPage(target);
   } catch (err) {
     if (err instanceof FondParamsError) throw err;
     console.error("fond: navigation failed", err);

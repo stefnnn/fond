@@ -93,6 +93,20 @@ describe("useMutation", () => {
     expect(outcome).toEqual({ ok: true, redirected: true, data: null });
   });
 
+  it("propagates a rejected redirect (e.g. a cross-origin target) instead of swallowing it", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ redirect: "https://evil.example/phish" }));
+    vi.stubGlobal("fetch", fetchMock);
+    navigateMock.mockRejectedValue(new Error("fond: refusing to navigate to cross-origin URL"));
+
+    const { result } = renderHook(() => useMutation<Record<string, unknown>>("/orders", "post"));
+
+    await expect(
+      act(async () => {
+        await result.current.mutate({});
+      }),
+    ).rejects.toThrow(/cross-origin/);
+  });
+
   it("resolves a props outcome on 200 with props", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ props: { id: 7 } }));
     vi.stubGlobal("fetch", fetchMock);

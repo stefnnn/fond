@@ -138,6 +138,28 @@ describe("navigate", () => {
 
     expect(assignSpy).toHaveBeenCalledWith("/orders");
   });
+
+  it("refuses to navigate to a cross-origin URL", async () => {
+    const fetchMock = vi.fn();
+    const assignSpy = vi.spyOn(location, "assign").mockImplementation(() => {});
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(navigate("https://evil.example/phish")).rejects.toThrow(/cross-origin/);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(assignSpy).not.toHaveBeenCalled();
+  });
+
+  it("refuses to navigate to a protocol-relative URL", async () => {
+    const fetchMock = vi.fn();
+    const assignSpy = vi.spyOn(location, "assign").mockImplementation(() => {});
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(navigate("//evil.example/phish")).rejects.toThrow(/cross-origin/);
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(assignSpy).not.toHaveBeenCalled();
+  });
 });
 
 describe("handlePopState", () => {

@@ -107,3 +107,9 @@ The body is coerced into the mutation's `Params` struct with the same rules as p
 Validation errors use one canonical shape everywhere: `base` for record-level messages, `fields` keyed by camelCase attribute name. Rails-side, returning an `ActiveModel::Errors` (or a saved-record failure via `Fond::Invalid`) converts automatically.
 
 Redirects are encoded in the JSON body rather than HTTP redirects, so `fetch` never transparently follows them and the client router stays in control.
+
+`redirect` must be a relative, same-origin path (`Fond::Redirect.new` raises if it isn't, e.g. an absolute URL or a protocol-relative `//host/...` value). This matters because the URL is round-tripped through server-supplied JSON: without that constraint, a controller that builds a redirect target from user input (a `return_to` param, say) could turn a mutation into an open redirect. The client router enforces the same constraint independently before navigating — `navigate()` refuses any URL that doesn't resolve to the current origin, whether it came from a mutation's `redirect` field or any other caller.
+
+## CSRF
+
+Fond does not implement CSRF protection itself — mutation requests carry `X-CSRF-Token` (read from the `csrf-token` meta tag) purely as a courtesy to whatever protection the host app has configured. Enforcement is entirely Rails' own `protect_from_forgery`/`verify_authenticity_token` on the controller. An app that disables forgery protection, or that mounts Fond mutation routes on a controller with `protect_from_forgery with: :null_session` (or no forgery protection at all, as is common on API-only base controllers), has no CSRF protection on its mutations — Fond will not add one.

@@ -44,7 +44,15 @@ module Fond
   class Redirect
     attr_reader :url
 
+    # Mutation redirects are soft-navigated by the client router, which only
+    # ever fetches same-origin URLs — an absolute or protocol-relative URL
+    # here would let a controller (accidentally, e.g. from a `return_to`
+    # param) turn a mutation into an open redirect.
     def initialize(url)
+      unless url.is_a?(String) && url.start_with?("/") && !url.start_with?("//")
+        raise ArgumentError, "Fond::Redirect requires a relative, same-origin path, got: #{url.inspect}"
+      end
+
       @url = url
     end
   end

@@ -55,7 +55,7 @@ export function useMutation<P extends object, R = null>(
         if (response.status === 200) {
           const body = (await response.json()) as { redirect?: string; props?: unknown };
           if (body.redirect !== undefined) {
-            void navigate(body.redirect);
+            await navigate(body.redirect);
             setErrors(null);
             return { ok: true, redirected: true, data: null };
           }
