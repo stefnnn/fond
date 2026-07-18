@@ -19,5 +19,18 @@ module Fond
         Fond::Autogenerate.run
       end
     end
+
+    initializer "fond.ssr_sidecar", after: :load_config_initializers do
+      Fond::Sidecar.start!
+    end
+
+    if defined?(Rails::Server)
+      Rails::Server.prepend(Module.new do
+        def start(*args, &block)
+          Fond::Sidecar.mark_server_command!
+          super
+        end
+      end)
+    end
   end
 end

@@ -6,9 +6,10 @@ Fond.configure do |config|
   # config.autogenerate = true
   # config.autogenerate_dirs = %w[app/pages app/mutations]
 <% if options[:ssr] -%>
-  # config.ssr_url = ENV["FOND_SSR_URL"] if ENV["FOND_SSR_URL"].present?
-  # Point ssr_url at the sidecar started by `ssr: node tmp/ssr/ssr.js` (see Procfile.dev)
-  # once it is built with `bin/vite build --ssr`.
+  # config.ssr = true # development only: builds & runs the SSR sidecar automatically
+  # config.ssr_port = 13_714
+  # In production, build the bundle at deploy and run it as its own process,
+  # then set config.ssr_url = ENV["FOND_SSR_URL"] (always takes precedence over config.ssr).
 <% else -%>
   # config.ssr_url = nil
 <% end -%>

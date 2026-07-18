@@ -56,26 +56,52 @@ export default defineConfig({
 });
 ```
 
-```bash
-vite build --config vite.ssr.config.ts
-node tmp/ssr/ssr.js
+## Development: `config.ssr = true`
+
+```ruby
+# config/initializers/fond.rb
+Fond.configure do |config|
+  config.ssr = true       # development only: builds tmp/ssr/ssr.js if stale,
+                           # spawns/kills the Node sidecar around bin/rails s
+  config.ssr_port = 13_714 # default
+  config.ssr_timeout = 1.0 # default; applies to both open and read timeouts
+end
 ```
 
-Run this as its own process (`Procfile`, systemd unit, whatever) alongside
-`bin/rails s`.
+With `config.ssr = true`, Fond hooks `bin/rails server`/`bin/rails s`
+(including via `bin/dev`) and, before it starts accepting connections:
 
-## Pointing Rails at it
+- builds the bundle above with `vite build --config vite.ssr.config.ts` if
+  `tmp/ssr/ssr.js` is missing or older than anything under `app/frontend`
+  (logging `fond: building SSR bundle...` when it does; build output goes to
+  `log/fond_ssr.log`)
+- spawns `node tmp/ssr/ssr.js` on `ssr_port`, and points `ssr_url` at it
+- kills that process when the Rails server stops
+
+This only fires for the actual `server` command — `rails console`, `rails
+runner`, rake tasks, and the test suite are unaffected, so nothing spawns a
+Node process outside of running the app in dev.
+
+## Production
+
+`config.ssr` is a development convenience and doesn't apply here. Build the
+bundle during deploy, run `node tmp/ssr/ssr.js` under your own process
+manager (systemd, a `Procfile`, whatever), and point Fond at it explicitly:
 
 ```ruby
 # config/initializers/fond.rb
 Fond.configure do |config|
   config.ssr_url = ENV["FOND_SSR_URL"] if ENV["FOND_SSR_URL"].present?
-  config.ssr_timeout = 1.0 # default; applies to both open and read timeouts
 end
 ```
 
-If `ssr_url` is `nil` (the default — e.g. unset in development), Fond
-never calls out to a sidecar at all; every page is CSR-only.
+`FOND_SSR_URL` (or `ssr_url` set directly) always takes precedence over
+`config.ssr`'s auto-management — setting it is how staging/production
+opt out of the dev-only build/spawn behavior entirely.
+
+If `ssr_url` is `nil` (the default — e.g. unset in development without
+`config.ssr`), Fond never calls out to a sidecar at all; every page is
+CSR-only.
 
 ## Degradation to CSR
 

@@ -4,7 +4,7 @@
 module Fond
   class Config
     attr_accessor :output_dir, :version, :pages_import_prefix, :ssr_url, :ssr_timeout,
-                  :shared_props_class_name, :autogenerate, :autogenerate_dirs
+                  :ssr, :ssr_port, :shared_props_class_name, :autogenerate, :autogenerate_dirs
 
     def initialize
       @output_dir = "app/frontend/generated"
@@ -12,6 +12,8 @@ module Fond
       @pages_import_prefix = "../pages/"
       @ssr_url = nil
       @ssr_timeout = 1.0
+      @ssr = false
+      @ssr_port = 13_714
       @shared_props_class_name = nil
       @autogenerate = true
       @autogenerate_dirs = %w[app/pages app/mutations]

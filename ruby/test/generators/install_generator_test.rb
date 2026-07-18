@@ -67,7 +67,7 @@ class InstallGeneratorTest < Rails::Generators::TestCase
     end
     assert_file "vite.ssr.config.ts"
     assert_file "config/initializers/fond.rb" do |content|
-      assert_match(/ssr_url/, content)
+      assert_match(/config\.ssr = true/, content)
     end
   end
 
