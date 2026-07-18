@@ -23,10 +23,9 @@ function readInitialPage(): PagePayload {
 }
 
 interface Rendered {
-  name: string;
   Component: ComponentType<any>;
   Layout?: ComponentType<{ children: ReactNode }>;
-  props: unknown;
+  page: PagePayload;
 }
 
 function createFondAppComponent(
@@ -37,9 +36,7 @@ function createFondAppComponent(
     const page = usePage();
     const [rendered, setRendered] = useState<Rendered | null>(() => {
       const cached = cache.get(page.component);
-      return cached
-        ? { name: page.component, ...cached, props: page.props }
-        : null;
+      return cached ? { ...cached, page } : null;
     });
 
     useEffect(() => {
@@ -47,7 +44,7 @@ function createFondAppComponent(
 
       const cached = cache.get(page.component);
       if (cached) {
-        setRendered({ name: page.component, ...cached, props: page.props });
+        setRendered({ ...cached, page });
         return;
       }
 
@@ -55,7 +52,7 @@ function createFondAppComponent(
         const resolvedComponent = resolveComponentModule(mod);
         cache.set(page.component, resolvedComponent);
         if (cancelled) return;
-        setRendered({ name: page.component, ...resolvedComponent, props: page.props });
+        setRendered({ ...resolvedComponent, page });
       });
 
       return () => {
@@ -64,7 +61,7 @@ function createFondAppComponent(
     }, [page.component, page.props]);
 
     if (!rendered) return null;
-    return renderResolvedElement(rendered.Component, rendered.Layout, rendered.props);
+    return renderResolvedElement(rendered.Component, rendered.Layout, rendered.page);
   };
 }
 

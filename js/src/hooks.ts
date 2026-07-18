@@ -1,8 +1,10 @@
-import { useSyncExternalStore } from "react";
-import { getPage, subscribe, type PagePayload } from "./store.js";
+import { useContext, useSyncExternalStore } from "react";
+import { getPage, subscribe, PageContext, type PagePayload } from "./store.js";
 
 export function usePage(): PagePayload {
-  return useSyncExternalStore(subscribe, getPage, getPage);
+  const live = useSyncExternalStore(subscribe, getPage, getPage);
+  const pinned = useContext(PageContext);
+  return pinned ?? live;
 }
 
 export function usePageProps<T>(expected?: string): T {

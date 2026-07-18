@@ -1,3 +1,5 @@
+import { createContext } from "react";
+
 export interface PagePayload {
   component: string;
   props: unknown;
@@ -5,6 +7,12 @@ export interface PagePayload {
   version: string;
   shared?: unknown;
 }
+
+// Set by FondApp around the currently-rendered page, pinning that subtree to
+// the payload it was resolved with. Without this, a still-mounted previous
+// page would read the live store below and see the *next* page's identity
+// while its dynamic import is still resolving.
+export const PageContext = createContext<PagePayload | null>(null);
 
 type Listener = () => void;
 

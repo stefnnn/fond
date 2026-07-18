@@ -2,12 +2,25 @@ import { act, createElement, useEffect, useRef, type ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createFondApp, type ComponentModule } from "./app.js";
+import { usePageProps } from "./hooks.js";
 
 function OrdersIndex({ totalCount }: { totalCount: number }) {
   return <div data-testid="page">orders/index:{totalCount}</div>;
 }
 
 function OrdersShow({ id }: { id: number }) {
+  return <div data-testid="page">orders/show:{id}</div>;
+}
+
+// Mirrors codegen'd page components: they read their props via
+// usePageProps(expectedComponentName) instead of taking them as React props.
+function OrdersIndexViaHook() {
+  const { totalCount } = usePageProps<{ totalCount: number }>("orders/index");
+  return <div data-testid="page">orders/index:{totalCount}</div>;
+}
+
+function OrdersShowViaHook() {
+  const { id } = usePageProps<{ id: number }>("orders/show");
   return <div data-testid="page">orders/show:{id}</div>;
 }
 
@@ -108,6 +121,56 @@ describe("createFondApp", () => {
     await act(async () => {
       navigated = navigate("/orders/9");
       await navigated;
+    });
+
+    expect(document.getElementById("fond-root")!.textContent).toBe("orders/index:3");
+
+    await act(async () => {
+      releaseShow();
+      await showPromise;
+    });
+
+    expect(document.getElementById("fond-root")!.textContent).toBe("orders/show:9");
+  });
+
+  it("does not throw when the still-mounted old page reads its props via usePageProps during a pending transition", async () => {
+    seedDom({ component: "orders/index", props: { totalCount: 3 }, url: "/orders", version: "v1" });
+
+    const modules: Record<string, ComponentModule> = {
+      "orders/index": { default: OrdersIndexViaHook },
+      "orders/show": { default: OrdersShowViaHook },
+    };
+
+    let releaseShow!: () => void;
+    const showPromise = new Promise<ComponentModule>((resolve) => {
+      releaseShow = () => resolve(modules["orders/show"]!);
+    });
+
+    const resolve = vi.fn((name: string) => {
+      if (name === "orders/show") return showPromise;
+      return modules[name]!;
+    });
+
+    await act(async () => {
+      createFondApp({ resolve });
+    });
+    expect(document.getElementById("fond-root")!.textContent).toBe("orders/index:3");
+
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({ component: "orders/show", props: { id: 9 }, url: "/orders/9", version: "v1" }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const { navigate } = await import("./router.js");
+
+    // Once navigate() resolves, the global store already points at
+    // "orders/show" even though OrdersIndexViaHook is still mounted and
+    // will re-render (its usePageProps("orders/index") call must not see
+    // the new global page — it should stay pinned to the old snapshot).
+    await act(async () => {
+      await navigate("/orders/9");
     });
 
     expect(document.getElementById("fond-root")!.textContent).toBe("orders/index:3");

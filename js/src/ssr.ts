@@ -2,7 +2,7 @@ import { renderToString } from "react-dom/server";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import type { ComponentModule } from "./app.js";
 import { renderPageElement } from "./element.js";
-import { setPage } from "./store.js";
+import { setPage, type PagePayload } from "./store.js";
 
 export interface SsrServerOptions {
   resolve: (component: string) => Promise<ComponentModule> | ComponentModule;
@@ -78,16 +78,18 @@ async function handleRender(
 
   try {
     const mod = await resolve(parsed.component);
-    // Pages read from the store via usePage/usePageProps, so seed it for
-    // this render. renderToString is synchronous — no concurrency hazard.
-    setPage({
+    const page: PagePayload = {
       component: parsed.component,
       props: parsed.props,
       url: parsed.url,
       version: parsed.version ?? "",
       shared: parsed.shared,
-    });
-    const html = renderToString(renderPageElement(mod, parsed.props));
+    };
+    // Pages read via the pinned PageContext (see element.ts), with the live
+    // store as a fallback — seed both. renderToString is synchronous, so
+    // there's no concurrency hazard in setting the store here.
+    setPage(page);
+    const html = renderToString(renderPageElement(mod, page));
     sendJson(res, 200, { html });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

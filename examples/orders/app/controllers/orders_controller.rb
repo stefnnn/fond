@@ -6,9 +6,10 @@ class OrdersController < ApplicationController
     scope = Order.order(placed_at: :desc)
     scope = scope.where(status: params.status.serialize) if params.status
     scope = scope.where("customer_name LIKE :q OR customer_email LIKE :q", q: "%#{params.query}%") if params.query
+    paginated_orders = scope.offset((params.page - 1) * PER_PAGE).limit(PER_PAGE).map { OrderDTO.from_model(it) }
 
     Orders::IndexPage::Props.new(
-      orders: scope.offset((params.page - 1) * PER_PAGE).limit(PER_PAGE).map { OrderDTO.from_model(it) },
+      orders: paginated_orders,
       total_count: scope.count,
       page: params.page,
       per_page: PER_PAGE,
