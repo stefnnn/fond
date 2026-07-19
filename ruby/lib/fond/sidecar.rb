@@ -11,6 +11,9 @@ module Fond
   # the bundle is built during deploy and `ssr_url`/FOND_SSR_URL points at a
   # separately managed process.
   module Sidecar
+    HEALTH_CHECK_TIMEOUT = 2.0
+    HEALTH_CHECK_INTERVAL = 0.1
+
     class << self
       def mark_server_command!
         @server_command = true
@@ -27,6 +30,7 @@ module Fond
 
         case port_status
         when :reusable
+          Rails.logger.info("fond: reusing existing SSR sidecar at #{url}")
           Fond.config.ssr_url = url
           return
         when :occupied
@@ -40,6 +44,12 @@ module Fond
         spawn_process
         Fond.config.ssr_url = url
         at_exit { stop! }
+
+        if wait_until_healthy
+          Rails.logger.info("fond: SSR sidecar running at #{url} (pid #{@pid})")
+        else
+          Rails.logger.warn("fond: SSR sidecar (pid #{@pid}) did not respond healthy within #{HEALTH_CHECK_TIMEOUT}s, see #{log_path}")
+        end
       rescue StandardError => e
         Rails.logger.warn("fond: SSR sidecar failed to start: #{e.class}: #{e.message}")
       end
@@ -72,6 +82,18 @@ module Fond
         :free
       rescue StandardError
         :occupied
+      end
+
+      # Polls /health until the just-spawned process answers, or times out —
+      # confirms the sidecar actually came up instead of just assuming it did.
+      def wait_until_healthy
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + HEALTH_CHECK_TIMEOUT
+        loop do
+          return true if port_status == :reusable
+          return false if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+          sleep HEALTH_CHECK_INTERVAL
+        end
       end
 
       def bundle_path

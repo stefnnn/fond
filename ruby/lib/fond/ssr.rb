@@ -18,9 +18,12 @@ module Fond
         http.open_timeout = Fond.config.ssr_timeout
         http.read_timeout = Fond.config.ssr_timeout
 
+        started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         response = http.post(uri.path, payload.to_json, "Content-Type" => "application/json")
+        elapsed_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
         return nil unless response.is_a?(Net::HTTPOK)
 
+        Rails.logger.info("fond: SSR rendered in #{elapsed_ms}ms") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
         JSON.parse(response.body)["html"]
       rescue StandardError => e
         warn_once(e)

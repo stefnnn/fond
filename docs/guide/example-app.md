@@ -6,20 +6,20 @@ end. It's the source for every code excerpt in this guide.
 
 ## What's where
 
-| Concern | Path |
-| --- | --- |
-| Pages | `app/pages/orders/{index,new,show}_page.rb` |
-| Controller (pages + mutations) | `app/controllers/orders_controller.rb` |
-| Mutations | `app/mutations/orders/{create,destroy,add_note,update_status}_mutation.rb` |
-| DTOs | `app/dtos/{order,line_item,order_event}_dto.rb`, `app/dtos/shared_props.rb` |
-| Enum | `app/types/order_status.rb` (`T::Enum`, backs the `OrderStatus` filter/select) |
-| Page components | `app/frontend/pages/orders/{index,new,show}.tsx` |
-| Client entrypoint | `app/frontend/entrypoints/application.tsx` |
-| SSR entrypoint | `app/frontend/ssr/ssr.tsx` |
-| Generated output | `app/frontend/generated/{types,pages,hooks,paths}.ts` (committed) |
-| Fond config | `config/initializers/fond.rb` |
-| Vite config | `vite.config.ts` (client), `vite.ssr.config.ts` (sidecar) |
-| Controller/mutation tests | `test/controllers/orders_controller_test.rb`, `test/controllers/mutations_test.rb` |
+| Concern                        | Path                                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| Pages                          | `app/pages/orders/{index,new,show}_page.rb`                                        |
+| Controller (pages + mutations) | `app/controllers/orders_controller.rb`                                             |
+| Mutations                      | `app/mutations/orders/{create,destroy,add_note,update_status}_mutation.rb`         |
+| DTOs                           | `app/dtos/{order,line_item,order_event}_dto.rb`, `app/dtos/shared_props.rb`        |
+| Enum                           | `app/types/order_status.rb` (`T::Enum`, backs the `OrderStatus` filter/select)     |
+| Page components                | `app/frontend/pages/orders/{index,new,show}.tsx`                                   |
+| Client entrypoint              | `app/frontend/entrypoints/application.tsx`                                         |
+| SSR entrypoint                 | `app/frontend/ssr/ssr.tsx`                                                         |
+| Generated output               | `app/frontend/generated/{types,pages,hooks,paths}.ts` (committed)                  |
+| Fond config                    | `config/initializers/fond.rb`                                                      |
+| Vite config                    | `vite.config.ts` (client), `vite.ssr.config.ts` (sidecar)                          |
+| Controller/mutation tests      | `test/controllers/orders_controller_test.rb`, `test/controllers/mutations_test.rb` |
 
 What it demonstrates:
 
@@ -29,7 +29,7 @@ What it demonstrates:
 - A `T::Array[LineItemInput]` nested-struct param on `CreateMutation`
   (array coercion, per-index error paths).
 - A discriminated union (`OrderEventDTO = T.any(StatusChangeEventDTO,
-  NoteEventDTO)`) rendered as a mixed activity feed.
+NoteEventDTO)`) rendered as a mixed activity feed.
 - Shared props (`SharedProps`, `app_name`/`flash`/`open_order_count`)
   read by every page via `useShared()`.
 - Real client-side navigation and typed path helpers
@@ -80,15 +80,7 @@ Procfile.dev`) for HMR log visibility. Visit `http://localhost:3000/orders`.
 `exec bin/dev` in one shot, if you'd rather not run each step by hand.
 :::
 
-SSR is optional and off by default in this example
-(`config.ssr_url` is only set from `ENV["FOND_SSR_URL"]`). To try it:
-
-```bash
-cd examples/orders
-vite build --config vite.ssr.config.ts
-FOND_SSR_PORT=13714 node tmp/ssr/ssr.js &
-FOND_SSR_URL=http://127.0.0.1:13714 bin/rails s
-```
+SSR is optional but activated in the example with (`config.ssr`). The node sidecar will automatically be started with `bin/dev`.
 
 ## Tests
 

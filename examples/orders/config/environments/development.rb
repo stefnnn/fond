@@ -31,6 +31,16 @@ Rails.application.configure do
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 
+  # Also send dev logs (SQL, requests, fond's SSR sidecar lines, etc.) to
+  # STDOUT so they show up in `bin/dev`'s console alongside Puma and Vite.
+  # config.logger isn't assigned yet at this point in boot, so build the
+  # file logger ourselves instead of wrapping the (not yet existing) default.
+  file_logger = ActiveSupport::Logger.new(config.default_log_file)
+  file_logger.formatter = config.log_formatter
+  console_logger = ActiveSupport::Logger.new($stdout)
+  console_logger.formatter = config.log_formatter
+  config.logger = ActiveSupport::BroadcastLogger.new(file_logger, console_logger)
+
   # Raise an error on page load if there are pending migrations.
   config.active_record.migration_error = :page_load
 

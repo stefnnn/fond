@@ -76,7 +76,19 @@ With `config.ssr = true`, Fond hooks `bin/rails server`/`bin/rails s`
   (logging `fond: building SSR bundle...` when it does; build output goes to
   `log/fond_ssr.log`)
 - spawns `node tmp/ssr/ssr.js` on `ssr_port`, and points `ssr_url` at it
+- polls `GET /health` for up to 2s to confirm the sidecar actually came up,
+  logging `fond: SSR sidecar running at http://127.0.0.1:13714 (pid ...)` on
+  success or a warning pointing at `log/fond_ssr.log` if it never answers —
+  check for this line at boot if you're not sure SSR is really running
 - kills that process when the Rails server stops
+
+If a healthy sidecar is already listening on `ssr_port` (e.g. left running
+from a previous boot), Fond reuses it instead of spawning another, logging
+`fond: reusing existing SSR sidecar at http://127.0.0.1:13714`.
+
+Each successful render also logs `fond: SSR rendered in <ms>ms`, so slow
+renders or degraded SSR are visible in the Rails log without instrumenting
+anything yourself.
 
 This only fires for the actual `server` command — `rails console`, `rails
 runner`, rake tasks, and the test suite are unaffected, so nothing spawns a
